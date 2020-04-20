@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Marcianito AlienWare</title>
+  <style type="text/css" media="screen">
+  <script src="jquery-3.2.1.min.js"></script>
+  </style>
+  <audio src="disfigure.ogg" autoplay loop></audio>
+</head>
+<body>
+<canvas id="canvas" style="display: block;cursor:pointer; float:center; position: absolute; top:0; bottom:0; right: 0; left: 0; margin:auto;">
+</canvas> 
+<script type="text/javascript">
+(function() {
+    var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+    window.requestAnimationFrame = requestAnimationFrame;
+})();
+  
+  var canvas = document.getElementById("canvas");
+  var ctx = canvas.getContext("2d");
+  
+//document.getElementById("canvas").addEventListener("click",printMousePos);
+//function FuncionMouse(){
+//	console.log(2)
+//}
+
+//////////////////VARIABLES GLOBALES//////////////////////////////////////////////
+canvas.width = 1080;
+canvas.height = 560;
+var ratio = 1;
+var tUp=38, tDown=40, tLeft=37,tRight=39, tSpace=32, tEnter=13; //Ascii keyboard
+var frame = 0, fps = 60, segundos = 0;
+var started = false, keyBlocker = false, finished = false, gamestarted = false;
+var duration=300;
+var listCow=[], gCows=75, clock2CreateCow=0,oroXvaca=5; //datos de vacas
+var listCloud=[], gCloud=650, clock2CreateCloud=0;      //datos de nubes
+var listPlane=[], gPlane=650,clock2CreatePlane=1;       //datos de aviones
+var listChicken=[], gChicken=80, clock2CreateChicken=0; //datos de pollos
+////////////////////FIN DE VARIABLES GLOBALES//////////////////////////////////////
+function StartDisplay(){
+  ctx.beginPath();
+  ctx.rect(0,0,(canvas.width) * ratio,(canvas.height) * ratio);
+  ctx.fillStyle = "black";
+  ctx.fill();
+  ctx.font = "60px Helvetica";
+  ctx.fillStyle = "#00BF40";
+  ctx.fillText("MARCIANITO WARE",canvas.width/9, canvas.height/7);
+  ctx.font = "40px Arial";
+  ctx.fillStyle = "#F2000D";
+  ctx.fillText("PRESIONA ENTER", canvas.width/1.7, canvas.height/1.2);
+  ctx.font = "30px Comic Sans";
+  ctx.fillStyle = "grey";
+  ctx.fillText("INSTRUCCIONES", canvas.width/20, canvas.height/4);
+  ctx.font = "23px Comic Sans";
+  ctx.fillStyle = "white";
+  ctx.fillText("- Moverse con las flechas del teclado o WASD",canvas.width/20, canvas.height/3.3);
+  ctx.font = "23px Comic Sans";
+  ctx.fillStyle = "white";
+  ctx.fillText("- Abducir vacas presionando SPACE al estar justo encima de ellas",canvas.width/20, canvas.height/2.8);
+  ctx.font = "23px Comic Sans";
+  ctx.fillStyle = "white";
+  ctx.fillText("- Esquivar las gallinas y aviones que intentan derribarte",canvas.width/20, canvas.height/2.4);
+  ctx.font = "23px Comic Sans";
+  ctx.fillStyle = "#F2000D";
+  ctx.fillText("*La dificultad incrementa respecto al tiempo transcurrido*", canvas.width/19, canvas.height/2);
+  var img = new Image();
+  img.src = "sprites/others/img1.png";
+  img.width = canvas.width/7.3;
+  img.height = canvas.height/2.5;
+  ctx.drawImage(img,canvas.width/1.5,canvas.height/3.5, (img.width)*ratio,(img.height)*ratio);
+  ctx.closePath();
+  return 0;
+}
+function GameDisplay(){
+  var img = new Image();
+  img.src = "sprites/others/background.png";
+  ctx.beginPath();
+  ctx.drawImage(img,0,0, (canvas.width)*ratio,(canvas.height)*ratio);
+  ctx.closePath();
+  if(frame == 60 && !ovni.dead){ segundos++; }
+  return 0;
+}
+function drawEmojis(){
+  var coin=new Image();
+  var watch=new Image();
+  var dog=new Image();
+  coin.src="sprites/others/coin.png";
+  watch.src="sprites/others/watch.png";
+  dog.src="sprites/others/dog.png";
+  ctx.beginPath();
+  ctx.drawImage(coin,5,5,30,30);
+  ctx.drawImage(watch,canvas.width-150,5,30,30);
+  ctx.drawImage(dog,250,450,60,30);
+  //----------Datos de pantalla--------------
+  ctx.font = "30px Arial";
+  ctx.fillStyle ="black";
+  ctx.fillText(ovni.score.toString(), 40,30);
+  ctx.fillText(segundos.toString()+"s", canvas.width-115,30);
+  //-----------------------------------------
+  ctx.closePath();
+  return 0;
+}
+function GameOverDisplay(){
+  var img = new Image();
+  img.src = "sprites/others/endBackground.png";
+  var imgA = new Image();
+  imgA.src = "sprites/others/aw1.png";
+  ctx.beginPath();
+  ctx.drawImage(img,0,0, (canvas.width)*ratio,(canvas.height)*ratio);
+  ctx.drawImage(imgA,canvas.width-400,150,250,250);
+  ctx.fillText(ovni.score, 160,240);
+  ctx.fillText(ovni.segundos.toString()+"seg", 160,290);
+  ctx.fillText(ovni.captura, 160,340);
+  ctx.font = "20px Arial";
+  ctx.fillText("Dead by: "+ovni.deadBy, 160,410);
+  ctx.font = "40px Arial";
+  ctx.fillStyle="white";
+  ctx.fillText("Presiona R para reiniciar",600, 450);
+  ctx.closePath();
+  return 0;
+}
+/////////////////////////////OBJETOS//////////////////////
+var ovni ={ 
+  score:0,
+  posX:(canvas.width/2)-80,
+  posY:60,
+  width:180,
+  height:150,
+  speed:10,
+  dead:false,
+  deadBy:"",
+  segundos: 0,
+  captura:0,
+  shoot:true,
+  dirNormalImage:"sprites/naves/nave.png",
+  dirLaserImage:"sprites/naves/l7.png",
+  drawOvni: function(){
+    var img = new Image();
+    if (this.shoot){ img.src = this.dirNormalImage; }
+    else { img.src = this.dirLaserImage; }
+    img.width = canvas.width/5;
+    img.height = canvas.height/4;
+    ctx.beginPath();
+    ctx.drawImage(img,this.posX,this.posY,this.width,this.height); 
+    ctx.closePath();
+  },
+  doItAnything: function(){
+    if ((key[tRight] == true || key[68] ==true) && keyBlocker == false && this.posX+200<canvas.width){
+      this.posX+=this.speed;
+      keyBlocker=true;
+    }
+    else if((key[tRight] == false || key[68] == false) && keyBlocker == true){ keyBlocker=false;}
+    
+    if ((key[tLeft] == true || key[65] == true) && keyBlocker == false && this.posX>0){
+      this.posX-=this.speed;
+      keyBlocker=true;
+    }
+    else if((key[tLeft] == false || key[65] == false) && keyBlocker == true){ keyBlocker = false; }
+
+    if ((key[tUp] == true || key[87] == true)&& keyBlocker == false && this.posY>0){
+      this.posY -= this.speed;
+      keyBlocker=true;
+    }
+    else if((key[tUp] == false || key[87] == false) && keyBlocker == true ){ keyBlocker = false; }
+
+    if ((key[tDown] == true || key[83] == true) && keyBlocker == false && this.posY+230<canvas.height){
+      this.posY+=this.speed;
+      keyBlocker=true;
+    }
+    else if((key[tDown] == false || key[83] == false) && keyBlocker == true){ keyBlocker = false; }
+    
+    if (key[tSpace] == true && this.posY==330){
+      this.shoot=false;
+      for (var i=0;i<listCow.length;i++){
+        if (listCow[i].posX>this.posX && listCow[i].posX<(this.posX+this.height)) { 
+          listCow[i].dead=true;
+          this.score+=oroXvaca;
+          this.captura++;
+        }
+      }
+    }
+    else if(key[tSpace] == false){ this.shoot=true; }
+  } 
+} 
+var cow ={
+  checked:false,
+  posX: 0,
+  posY: canvas.height-150,
+  dead: false,
+  speed: 1,
+  xx: 0,
+  index: 0,
+  speed2Change: 0,
+  changeIn:10,
+  listImages : [["sprites/vacas/vLeft/v0.png", "sprites/vacas/vLeft/v1.png","sprites/vacas/vLeft/v2.png","sprites/vacas/vLeft/v3.png"],["sprites/vacas/vRight/v0.png","sprites/vacas/vRight/v1.png","sprites/vacas/vRight/v2.png","sprites/vacas/vRight/v3.png"]], 
+  drawCow: function(){
+    var img=new Image();
+    if(!this.checked){
+      if(this.xx==0){ this.posX=canvas.width+50; }
+      else{ this.posX=-50; }
+      this.checked=true;
+    }
+    if (this.index==4){ this.index=0; }
+    else if(this.speed2Change==this.changeIn){
+      this.speed2Change=0;
+      this.index++;
+      if (this.xx==0){ this.posX-=this.speed; }
+      else { this.posX+=this.speed; }
+    }
+    else { this.speed2Change++; }
+    img.src=this.listImages[this.xx][this.index]; //change image sprite
+        //check if is dead
+    if(!this.dead && this.xx==0 &&this.posX<(-55)) { this.dead=true;}
+    if(!this.dead && this.xx==1 &&this.posX>(canvas.width+55)) { this.dead=true;}   
+    ctx.beginPath();
+    ctx.drawImage(img, this.posX, this.posY,60,70);
+    ctx.closePath(); 
+  }
+}
+var cloud ={
+  posX: 0,
+  posY: 150,
+  dead: false,
+  speed: 0.5,
+  checked :false,
+  xx: Math.floor(Math.random() * 2),
+  dirImage :"sprites/others/cloud.png", 
+  drawCloud: function(){
+    var img=new Image();
+    img.src=this.dirImage;
+     if(!this.checked){
+      if(this.xx==0){ this.posX=canvas.width+50; }
+      else{ this.posX=-150; }
+      this.checked=true;
+    }    
+    if (this.xx==0) { this.posX-=this.speed; }
+    else { this.posX+=this.speed; }
+    //check if is dead
+    if(!this.dead && this.xx==0 &&this.posX<(-155)) { this.dead=true;}
+    if(!this.dead && this.xx==1 &&this.posX>(canvas.width+55)) { this.dead=true;}   
+    ctx.beginPath();
+    ctx.drawImage(img, this.posX, this.posY,150,50);
+    ctx.closePath(); 
+  }
+}
+var plane ={
+  posX: 0,
+  posY: 0,
+  width: 100,
+  height: 50,
+  dead: false,
+  speed: 10,
+  checked :false,
+  xx: 0,
+  dirImagePlane :["sprites/others/planeL.png", "sprites/others/planeR.png","sprites/others/alert.png"], 
+  tamAlert: 35,
+  drawPlane: function(){
+    var img=new Image();
+    var imgAlert= new Image();
+    imgAlert.src= this.dirImagePlane[2];
+    img.src =this.dirImagePlane[this.xx]; 
+     if(!this.checked){
+      if(this.xx==0){ this.posX=canvas.width+50; }
+      else{ this.posX=-150; }
+      this.checked=true;
+    }    
+    if (this.xx==0) { this.posX-=this.speed; }
+    else { this.posX+=this.speed; }
+    //check if is dead
+    if(!this.dead && this.xx==0 &&this.posX<(-155)) { this.dead=true;}
+    if(!this.dead && this.xx==1 &&this.posX>(canvas.width+55)) { this.dead=true;} 
+    ctx.beginPath();
+    ctx.drawImage(img, this.posX, this.posY,this.width,this.height);
+    if (this.xx==0){ ctx.drawImage(imgAlert, canvas.width-40, this.posY,this.tamAlert,this.tamAlert); }
+    else {ctx.drawImage(imgAlert,5, this.posY,this.tamAlert,this.tamAlert); }
+    ctx.closePath(); 
+    //Choque con ovni
+    if ((this.posX+this.width/2<=ovni.posX+ovni.width && this.posX+this.width/2>=ovni.posX) && (this.posY+this.height/2<=ovni.posY+ovni.height-55 && this.posY+this.height/2>=ovni.posY)){ 
+      ovni.dead=true;
+      ovni.deadBy="Aircraft.";
+    }
+  }
+}
+var launcher={
+  posX: ovni.posX-500,
+  posY: 415,
+  width: 150,
+  height: 140,
+  speed: 3,
+  drawLauncher: function(){
+    if (this.posX<ovni.posX){ this.posX+=this.speed; }
+    if (this.posX>ovni.posX){ this.posX-=this.speed; }
+    var img = new Image();
+    img.src = "sprites/granjeros/tm.png";
+    img.width = canvas.width/5;
+    img.height = canvas.height/4;
+    ctx.beginPath();
+    ctx.drawImage(img,this.posX,this.posY, this.width, this.height);
+    ctx.closePath();
+  }
+}
+var chicken={
+  posX: launcher.posX+65,
+  posY: launcher.posY,
+  width: 35,
+  height: 35,
+  speed: 5,
+  dead: false,
+  drawChicken: function(){
+    this.posY-=this.speed;
+    var img = new Image();
+    img.src = "sprites/gallinas/leftg1.png";
+    ctx.beginPath();
+    ctx.drawImage(img,this.posX,this.posY, this.width, this.height);
+    ctx.closePath();
+    if (this.posY<0) {this.dead=true;} //si sale de pantalla
+    if ((this.posX+this.width/2<=ovni.posX+ovni.width && this.posX+this.width/2>=ovni.posX) && (this.posY+this.height/2<=ovni.posY+ovni.height-55 && this.posY+this.height/2>=ovni.posY)){
+      ovni.dead=true;
+      ovni.deadBy="Chicken.";
+    }
+  }
+}
+///////////////////////// time support //////////////////////////////////
+function timeControl(){
+  frame++;
+  if(frame > fps){ frame= 0; }
+  return 0;
+}
+/////////////Se agregan los listeners del //////////////////////////////////
+var key = [];
+function setKeys(status){ for(var i = 0; i<300; i++){ key[i]=status; } }
+setKeys[false];
+document.addEventListener("keydown", function(e) { key[e.keyCode] = true; console.log("down: "+e.keyCode); });
+document.addEventListener("keyup", function(e) { key[e.keyCode] = false; });
+////////////////////////////////////////////////////////////////////////////////////
+function KeyHandler(){
+  if(key[13] == true && keyBlocker == false){ started = true; keyBlocker = true; }
+  else if(key[13] == false && keyBlocker == true){ started = false; keyBlocker = false; }
+  if (key[27] == true && keyBlocker == false){ finished= true; keyBlocker = true; }
+  else if(key[27] == false && keyBlocker == true){ finished = false; keyBlocker = false; }
+  if (key[82] == true && (ovni.dead == true || finished == true) ){ location.reload(true); }
+  return 0;
+}
+function clone( obj ) { //Function to clone obj
+    if (obj===null || typeof obj!=='object'){ return obj; }
+    var temp = obj.constructor();
+    for (var key in obj){temp[key]=clone(obj[key]); }
+    return temp;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////
+function main(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);    
+  KeyHandler();
+  timeControl();
+  if (started== false && gamestarted != true && !ovni.dead){
+    StartDisplay();
+
+  }
+  else  {
+    GameDisplay(); 
+    //-------------------Niveles conforme tiempo------------------------//
+    if(segundos<100){ gPlane=350; plane.speed=5;}
+    else if(segundos<200){ gPlane=300; plane.speed=10; }
+    else if(segundos<250){ gPlane=150; plane.speed=15; }
+    else if(segundos<300){ gPlane=100; plane.speed=18; }
+    //------------Crear y checar vacas muertas--------------------------//
+    if (clock2CreateCow%gCows==0){ //create cow
+      clock2CreateCow=0;
+      var tmp=clone(cow);
+      tmp.xx=Math.floor(Math.random() * 2); //direccion aleatoria
+      tmp.speed=Math.round(Math.random() * (25-5)+ 5); //velocidad aleatoria
+      listCow.push(tmp);
+    }
+    for (var i=0; i<listCow.length; i++){
+      listCow[i].drawCow();
+      if (listCow[i].dead){ listCow.splice(i,1); }
+    } 
+    //------Crear y checar nubes muertas-------------------------------//
+    if (clock2CreateCloud%gCloud==0){ //create cloud
+      clock2CreateCloud=0;
+      var tmp=clone(cloud);
+      tmp.posY=Math.round(Math.random()*((canvas.height-350)-15)+ 15);
+      listCloud.push(tmp);
+    }
+    for (var i=0; i<listCloud.length; i++){
+      listCloud[i].drawCloud();
+      if (listCloud[i].dead){ listCloud.splice(i,1); }
+    } 
+    //---------Crear y checar aviones muertos-------------------------//
+    if (clock2CreatePlane%gPlane==0){ //create plane
+      clock2CreatePlane=0;
+      var tmp=clone(plane);
+      tmp.xx=Math.floor(Math.random() * 2); //direccion aleatoria
+      tmp.posY=Math.round(Math.random()*((330)-40)+ 40);
+      listPlane.push(tmp);
+    }
+    for (var i=0; i<listPlane.length; i++){
+      listPlane[i].drawPlane();
+      if (listPlane[i].dead){ listPlane.splice(i,1); }
+    }   
+    //---------Crear y checar gallinas muertas-------------------------//
+    if (clock2CreateChicken%gChicken==0){ //create plane
+      clock2CreateChicken=0;
+      var tmp=clone(chicken);
+      tmp.posX=launcher.posX+65;
+      listChicken.push(tmp);
+    }
+    for (var i=0; i<listChicken.length; i++){
+      listChicken[i].drawChicken();
+      if (listChicken[i].dead){ listChicken.splice(i,1); }
+    } 
+    //-----------------------------------------------------------------//
+    ovni.drawOvni();
+    ovni.doItAnything();
+    //Contadores
+    clock2CreateCow++;
+    clock2CreateCloud++;
+    clock2CreatePlane++;
+    clock2CreateChicken++;
+
+    started= false;
+    gamestarted = true;
+    drawEmojis();
+    launcher.drawLauncher();
+    
+  }
+   if (finished == true || segundos==duration || ovni.dead){
+    ovni.segundos=segundos;
+    if (!ovni.dead){ ovni.deadBy="Player."; ovni.dead=true; }
+    started = false;
+    gamestarted = false;
+    GameOverDisplay();    
+  }
+  requestAnimationFrame(main);          
+}
+window.addEventListener("load",function(){ main(); });
+</script>
+</body>
+</html>
