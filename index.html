@@ -3,11 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <title>Tlaloc</title>
+
+
     <style type="text/css" media="screen">
       <script src="jquery-3.2.1.min.js"></script>
     </style>
     <link rel="stylesheet" type="text/css" href="styles.css">
-    <audio src="abductionofthecows.mp3"  loop></audio>
+    <script src="JoyStick/joy.js"></script>
+    <audio src="darkmayan.mp3" autoplay loop></audio>
   </head>
   <body>
     <div id="container-form">
@@ -39,8 +42,27 @@
       </table>
       <a href="#" id="close"></a>
     </div>
+
+
+    <div id="joyDiv"></div>
+    <div id="gameBtn"></div>
+    <div id="refreshBtn"><p>Reiniciar</p></div>
+
     <canvas id="canvas" ></canvas>
+
     <script type="text/javascript">
+      var joyParams = { 
+        'width':200,
+        'height':200,
+        'internalFillColor':'#E5CE62',
+        'internalStrokeColor':'#E5CE62',
+        'externalStrokeColor':'#E5CE62',
+      };
+      var joy = new JoyStick('joyDiv', joyParams);
+      
+      
+      
+
       (function() {
         var requestAnimationFrame =
           window.requestAnimationFrame ||
@@ -91,7 +113,71 @@
         gChicken = 80,
         clock2CreateChicken = 0; //datos de pollos
       var resultsSent = false;
+
+      var usingJoy = false;
+      var joyx = 0;
+      var joyy = 0;
+      var gameBtn = false;
+      var refreshBtn = false;
       ////////////////////FIN DE VARIABLES GLOBALES//////////////////////////////////////
+      
+      setInterval(function(){
+           ///////////////////////////////ajusta botones al canvas
+           var rect = document.getElementById("canvas").getBoundingClientRect(); 
+           document.getElementById("joystick").style.top = rect.top+canvas.height-200+"px";
+           document.getElementById("joystick").style.left = rect.left+"px";
+           document.getElementById("gameBtn").style.top = rect.top+canvas.height-145+"px";
+           document.getElementById("gameBtn").style.left = rect.left+canvas.width-145+"px";
+           document.getElementById("refreshBtn").style.top = rect.top+canvas.height-100+"px";
+           document.getElementById("refreshBtn").style.left = rect.left+canvas.width-250+"px";
+           
+           ////////////////////////////revisa si se deben activar botones por el tamaño de pantalla (1040 es un ipad)
+           if(screen.width <= 1040){
+             usingJoy = true;
+             document.getElementById("joyDiv").style.display = "initial";
+             document.getElementById("gameBtn").style.display = "initial";
+           }
+           else{
+             usingJoy = false;
+             document.getElementById("joyDiv").style.display = "none";
+             document.getElementById("gameBtn").style.display = "none";
+           }
+      },500);
+      ////////////////////////////////////////////////////eventos de botones
+      if("ontouchstart" in document.documentElement){
+         document.getElementById("gameBtn").addEventListener("touchstart", function(){
+           gameBtn = true;
+         });
+         document.getElementById("gameBtn").addEventListener("touchend", function(){
+           gameBtn = false;
+         });
+         document.getElementById("refreshBtn").addEventListener("touchstart", function(){
+           if (ovni.dead == true || finished == true) {
+            location.reload(true);
+           }
+         });
+      }
+      else{
+         document.getElementById("gameBtn").addEventListener("mousedown", function(){
+           gameBtn = true;
+         });
+         document.getElementById("gameBtn").addEventListener("mouseup", function(){
+           gameBtn = false;
+         });
+         document.getElementById("refreshBtn").addEventListener("mousedown", function(){
+           if (ovni.dead == true || finished == true) {
+            location.reload(true);
+           }
+         });
+      }
+      ////////////////////////////////oculta joystick en gameover y aparece refreshBtn
+      function gameOverJoyBtn(){
+         document.getElementById("joyDiv").style.display = "none";
+         document.getElementById("gameBtn").style.display = "none";
+         document.getElementById("refreshBtn").style.display = "initial";
+         return 0;
+      }
+
       function StartDisplay() {
         ctx.beginPath();
         ctx.rect(0, 0, canvas.width * ratio, canvas.height * ratio);
@@ -138,6 +224,8 @@
         return 0;
       }
       function GameOverDisplay() {
+        gameOverJoyBtn();
+
         var img = new Image();
         img.src = "sprites/others/endBackground.png";
         //var imgA = new Image();
@@ -145,7 +233,7 @@
         ctx.beginPath();
         ctx.drawImage(img, 0, 0, canvas.width * ratio, canvas.height * ratio);
         //ctx.drawImage(imgA,canvas.width-400,150,250,250);
-        ctx.fillText("PUNTUACIÓN: "+ovni.score, 45, 240);
+        ctx.fillText("PUNTUACIÓN:"+ovni.score, 45, 240);
         ctx.fillText(ovni.segundos.toString() + " SEGUNDOS", 45, 290);
         ctx.fillText("XOLOS CAPTURADOS: " +ovni.captura, 45, 340);
         ctx.font = "20px Arial";
@@ -153,12 +241,13 @@
         ctx.font = "40px Arial";
         ctx.fillStyle = "white";
         ctx.fillText("Presiona R para reiniciar", 600, 450);
+        
         ctx.closePath();
         return 0;
       }
       /////////////////////////////OBJETOS//////////////////////
       function printMouseClick(event) {
-        console.log("ClickX: " + event.clientX + " ClickY: " + event.clientY);
+        // console.log("ClickX: " + event.clientX + " ClickY: " + event.clientY);
         var clickx = event.clientX;
         var clicky = event.clientY;
         started = true;
@@ -300,6 +389,54 @@ if (ovni.dead == true || finished == true){location.reload(true); }
           } else if (key[tSpace] == false) {
             this.shoot = true;
           }
+          
+          ///////////////////////////////////////////////mobile control
+          if(usingJoy == true){
+             joyx=joy.GetX(); 
+             joyy=joy.GetY();
+             var movex = 0;
+             var movey = 0;
+             var joydir = joy.GetDir();
+             
+             //////////////////////////////////ajustar velocidad moviendo los decimales
+             movex = (this.speed/100*joyx)*0.9;
+             movey = (this.speed/100*joyy)*0.7;
+             this.posX += movex;
+             this.posY -= movey;
+
+             if(this.posX + this.width > canvas.width){
+               this.posX = canvas.width-this.width;
+             }
+             else if(this.posX < 0){
+               this.posX = 0;
+             }
+             if(this.posY  > 330){
+               this.posY = 330;
+             }
+             else if(this.posY < 0){
+               this.posY = 0;
+             }
+
+             // document.getElementById("debug").innerHTML = "  "+gameBtn;
+             if (gameBtn == true && this.posY == 330) {
+               this.shoot = false;
+               for (var i = 0; i < listCow.length; i++) {
+                 if (
+                   listCow[i].posX > this.posX &&
+                   listCow[i].posX < this.posX + this.height
+                 ) {
+                   listCow[i].dead = true;
+                   this.score += oroXvaca;
+                   this.captura++;
+                 }
+               }
+               
+             } else if (gameBtn == false) {
+               this.shoot = true;
+             }
+          }
+          
+
         }
       };
       var cow = {
