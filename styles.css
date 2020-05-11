@@ -77,27 +77,14 @@ body *{outline: none}
   color: #fff;
 }
 
-#container-button {
-  position: fixed;
-  width: 1080px;
-  height: 560px;
-  margin: auto;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-#container-button button {
+#button {
   background-color: #18a3d6;
   color: #fff;
   padding: 1rem 2rem;
   border-radius: 0.3rem;
   margin-right: 3rem;
+  position: absolute;
+  z-index: 5;
 }
 
 #container-scores {
@@ -183,6 +170,7 @@ body *{outline: none}
   display: none;
 }
 /*////////*/
+
 #joystick{
   position: absolute;
   margin:auto;

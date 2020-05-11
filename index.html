@@ -26,9 +26,6 @@
         <input id="submit" type="submit" value="¡Jugar!" />
       </form>
     </div>
-    <div id="container-button" class="hide">
-      <button type="button" id="button">Ver puntajes más altos</button>
-    </div>
     <div id="container-scores" class="hide">
       <table id="table">
         <thead>
@@ -44,9 +41,10 @@
     </div>
 
 
-    <div id="joyDiv"></div>
-    <div id="gameBtn"></div>
-    <div id="refreshBtn"><p>Reiniciar</p></div>
+      <div id="joyDiv"></div>
+      <div id="gameBtn"></div>
+      <div id="refreshBtn"><p>Reiniciar</p></div>
+      <button type="button" id="button" class="hide">Ver puntajes más altos</button>
 
     <canvas id="canvas" ></canvas>
 
@@ -124,12 +122,14 @@
       setInterval(function(){
            ///////////////////////////////ajusta botones al canvas
            var rect = document.getElementById("canvas").getBoundingClientRect(); 
-           document.getElementById("joystick").style.top = rect.top+canvas.height-200+"px";
+           document.getElementById("joystick").style.top = rect.bottom-200+"px";
            document.getElementById("joystick").style.left = rect.left+"px";
-           document.getElementById("gameBtn").style.top = rect.top+canvas.height-145+"px";
-           document.getElementById("gameBtn").style.left = rect.left+canvas.width-145+"px";
-           document.getElementById("refreshBtn").style.top = rect.top+canvas.height-100+"px";
-           document.getElementById("refreshBtn").style.left = rect.left+canvas.width-250+"px";
+           document.getElementById("gameBtn").style.top = rect.bottom-145+"px";
+           document.getElementById("gameBtn").style.left = rect.right-145+"px";
+           document.getElementById("refreshBtn").style.top = rect.bottom-100+"px";
+           document.getElementById("refreshBtn").style.left = rect.right-250+"px";
+           document.getElementById("button").style.top = rect.bottom-330+"px";
+           document.getElementById("button").style.left = rect.right-250+"px";
            
            ////////////////////////////revisa si se deben activar botones por el tamaño de pantalla (1040 es un ipad)
            if(screen.width <= 1040){
@@ -818,9 +818,8 @@ if (ovni.dead == true || finished == true){location.reload(true); }
             sendResults(ovni.score, () => {});
             fetchHighestScores();
 
-            var buttonContainer = document.getElementById('container-button');
             var button = document.getElementById('button');
-            buttonContainer.classList.remove('hide');
+            button.classList.remove('hide');
             button.addEventListener('click', () => {
               var scores = document.getElementById('container-scores');
               var close = document.getElementById('container-scores');
