@@ -47,6 +47,7 @@ body *{outline: none}
   align-items: center;
   justify-content: center;
   max-width: 100vw;
+  max-height: 100vh;
 }
 
 #container-form form {
@@ -160,6 +161,7 @@ body *{outline: none}
   left: 0;
   margin: auto;
   max-width: 100vw;
+  max-height: 100vh;
 }
 /*////////no mover, repara bug de joy.js*/
 #joyDiv{
