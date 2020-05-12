@@ -896,6 +896,11 @@ if (ovni.dead == true || finished == true){location.reload(true); }
         });
       }
 
+      window.onresize = function() {
+        document.body.height = window.innerHeight;
+      }
+      window.onresize();
+
       window.addEventListener("load", function() {
         var user = {};
         var form = document.getElementById("form");
